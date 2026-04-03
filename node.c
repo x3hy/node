@@ -1,14 +1,29 @@
 #include <stdio.h>
+#include <string.h>
 #include "node.h"
 
 int main(){
-	struct node *msg = a_malloc(20);
 
-	// cast to a char*
-	char *my_msg = (char *)msg->ptr;
+	// Allocate data to a node
+	char *msg = nalloc(20);
+	strcpy(msg, "test123");
+	printf("%s\n", msg);
 
-	printf("%s\n", my_msg);
+	// Free that node
+	nfree(msg);
 
-	node_free(msg);
-	a_destroy();
+	// Delete ALL nodes
+	ndel();
+
+	// Allocate more data
+	char *msg2 = nalloc(20);
+	strcpy(msg2, "test123");
+	printf("%s\n", msg2);
+
+	// Don't free the node
+	//nfree(msg2);
+
+	// Delete ALL nodes
+	ndel();
+	return 0;
 }

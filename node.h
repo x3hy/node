@@ -1,106 +1,106 @@
 // vim: colorcolumn=55
-#ifndef ARENA_H
+#ifndef NODE_H
+#define NODE_H
 #if __cplusplus
 extern "C" {
-#endif
-	
-	// Misc dependencies
-	#define ARENA_H
+#endif // __cplusplus
 
-	#ifndef NULL
-	#define NULL (void *)0
-	#endif	
+	#ifdef NODE_H_DEBUG
+		#include <stdio.h>
+	#else // NODE_H_DEBUG
+		#ifndef NULL
+			#define NULL (void *)0
+		#endif // NULL
+	#endif //!NODE_H_DEBUG
 
-	#include <stdlib.h> // malloc and free are the only
-						// dependencies.
+	#include <stdlib.h>
 
 	// Main node
 	typedef struct node {
 		void *ptr;
-		unsigned int size;
-		unsigned int has_next;
 		struct node *next;
 	} Arena;
 
-	#define __node_loop(start) \
-		struct node *_cur = \
-			(start->next) \
-				? start->next \
-				: start; \
-		while (_cur)
-
-	#define __node_loop_inc \
-		_cur = _cur->next
-
-	#include <stdio.h>
-
-	// Allocate some new data
-	static struct node *
-	node_malloc (struct node *node, int size)
+	// Allocate new memory
+	static void *
+	node_malloc (struct node **ref, int size)
 	{
-		// Get the next available node
-		__node_loop (node)
-		  {
-			if (_cur->size != 0)
-				__node_loop_inc;
-
-			else break;
-		  }
-		// Something went wrong
-		if (!_cur){
-			printf("failed to generate");
-			return node;
-		}
-
-		// Assign the value and the size
-		_cur->ptr = malloc (_cur->size = size);
-
-		// Create a new node if needed.
-		_cur->next = (_cur->next)
-			? _cur->next
-			: calloc (1, sizeof(struct node));
+		struct node *cur = *ref;
 		
-		// Return the pointer
-		return _cur;
-	}
-
-	// frees a given node
-	static void
-	node_free (struct node *node)
-	{
-		free(node->ptr);
-	}
-	
-
-	// frees ALL memory and destroys nodes, the
-	// node_free function just removes the data.
-	static void
-	node_destroy (struct node *node)
-	{
-		unsigned int n_count = 0;
-		__node_loop(node)
+		// Initialize the main node
+		if (cur == NULL)
 		  {
-			n_count++;
-			__node_loop_inc;
+			cur = (struct node *)
+				calloc(1, sizeof(struct node));
+			*ref = cur;
 		  }
 
-		for (int i = n_count; i > 0; i++)
+		// Get the next available node
+		while (cur)
 		  {
-			__node_loop(node)
-				__node_loop_inc;
+			if (cur->ptr == NULL)
+			  {
+				cur->ptr = malloc (size);
+				return cur->ptr;
+			  }
+			if (cur->next == NULL)
+				break;
 
-			free(_cur->ptr);
-			free(_cur->next);
+			cur = cur->next;
 		  }
+
+		// Allocate the next node
+		cur->next = (struct node *)calloc(1, sizeof (struct node));
+		return node_malloc(ref, size);
+	}
+
+	// frees a given value
+	static int
+	node_free(struct node *ref, void *ptr)
+	{
+		if (ptr == NULL || ref == NULL)
+			return -1;
+
+		// Locate the pointer in the node list, when
+		// its found it will be free'd
+		struct node *cur = ref;
+		while(cur)
+		  {
+			if (cur->ptr == ptr)
+			  {
+				free(cur->ptr);
+				cur->ptr = NULL;
+				return 1;
+			  }
+			cur = cur->next;
+		  }
+		return 0;
+	}
+
+	// Frees ALL memory and destroys nodes, the
+	// node_free function just removes the pointer.
+	static int
+	node_destroy (struct node **ref)
+	{
+		struct node *cur = *ref;
+		while (cur)
+		  {
+			struct node *next = cur->next;
+			free(cur->ptr);
+			free(cur);
+			cur = next;
+		  }
+		*ref = NULL;
+		return 0;
 	}
 	
 	// A default node
-	struct node *__node = {0};
-	#define a_malloc(size) node_malloc(__node, size)
-	#define a_free(ref) node_free(__node, ref)
-	#define a_destroy() node_destroy(__node)
+	static struct node *__node = NULL;
+	#define nalloc(size) node_malloc(&__node, size)
+	#define nfree(str) node_free(__node, str)
+	#define ndel() node_destroy(&__node)
 
 #ifdef __cplusplus
 }
-#endif
-#endif // !ARENA_H
+#endif // __cplusplus
+#endif // !NODE_H

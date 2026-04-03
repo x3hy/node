@@ -4,15 +4,12 @@
 #if __cplusplus
 extern "C" {
 #endif // __cplusplus
+	// Ensure `NULL` is set
+	#ifndef NULL
+		#define NULL (void *)0
+	#endif // NULL
 
-	#ifdef NODE_H_DEBUG
-		#include <stdio.h>
-	#else // NODE_H_DEBUG
-		#ifndef NULL
-			#define NULL (void *)0
-		#endif // NULL
-	#endif //!NODE_H_DEBUG
-
+	// Only dependency (`free()` and `calloc()`)
 	#include <stdlib.h>
 
 	// Main node
@@ -50,7 +47,11 @@ extern "C" {
 		  }
 
 		// Allocate the next node
-		cur->next = (struct node *)calloc(1, sizeof (struct node));
+		cur->next =
+			(struct node *)
+			calloc(1, sizeof (struct node));
+
+		// Recurse until the next node is available
 		return node_malloc(ref, size);
 	}
 
@@ -66,8 +67,11 @@ extern "C" {
 		struct node *cur = ref;
 		while(cur)
 		  {
+			  // Compare the given pointer to the
+			  // pointer of the current node
 			if (cur->ptr == ptr)
 			  {
+				// If found then free that pointer
 				free(cur->ptr);
 				cur->ptr = NULL;
 				return 1;
@@ -83,11 +87,18 @@ extern "C" {
 	node_destroy (struct node **ref)
 	{
 		struct node *cur = *ref;
+
+		// Loop through every node
 		while (cur)
 		  {
 			struct node *next = cur->next;
+
+			// Free the nodes pointer and the node
+			// itself
 			free(cur->ptr);
 			free(cur);
+
+			// Move to the next node
 			cur = next;
 		  }
 		*ref = NULL;

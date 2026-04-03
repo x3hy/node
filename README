@@ -1,0 +1,27 @@
+node.h (Basic linked-list memory handler)
+
+-----------------------------------------------------------------------------
+This is a small C library that provides a new way to allocate memory, you can
+use this library to allocate memory but you are now able to free all of that
+memory at once. This is similar to a arena allocator in concept.
+
+`node.h` uses a linked list where each node has a `void *` pointer. Each node of
+course has a child node and that node has a child node and so on.. When you
+use `node_alloc()`, the size of memory given will be `malloc()`'d to the nearest
+available node, a pointer to this memory is returned. This means you can use
+`node_malloc()` just like regular `malloc()`.
+
+`node.h` also provides `node_free()` and `node_destroy()`. `node_free` takes a
+`void *` pointer and will locate that memory address in the linked list, when
+its found the memory will be `free()`'d, this node can of course be used
+again, this saves on allocations for new nodes.
+
+And finally `node_destroy()` will recursively free all the nodes and pointers.
+------------------------------------------------------------------------------
+
+Using `node.h` means that you can allocate memory without needing to worry
+about `free()`ing that memory. This is because memory allocated is held in a
+linked list, this means that regardless of where we point the allocated data
+we know where it is held (in the linked list).
+
+Read `example.c` for a basic implementation.

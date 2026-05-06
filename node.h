@@ -104,12 +104,60 @@ extern "C" {
 		*ref = NULL;
 		return 0;
 	}
+
+	static void *
+	node_point(struct node **ref, void *point, int ptr_size)
+	{
+		// Allocate node
+		const unsigned char *ptr = (unsigned char *)point;
+		int ptr_rel_size = 0;
+		while (ptr[ptr_rel_size])
+			ptr_rel_size++;
+
+		// Copy ptr over to node
+		unsigned char *d = (unsigned char *)node_malloc(ref, ptr_size) ;
+		for (int i = 0; i < ptr_rel_size; i++)
+			d[i] = ptr[i];
+
+		return (void *)d;
+	}	
+
+	static void *
+	node_realloc(struct node **ref, void* old_node, int new_size)
+	{
+		void *new_node = node_point(ref, old_node, new_size);
+		node_free(*ref, old_node);
+
+		return new_node;
+	}
 	
-	// A default node
-	static struct node *__node = NULL;
-	#define nalloc(size) node_malloc(&__node, size)
-	#define nfree(str) node_free(__node, str)
-	#define ndel() node_destroy(&__node)
+	static void *
+	node_string(struct node **ref, char *str)
+	{
+		// Get size of pointer
+		int ptr_size = 0;
+		while (str[ptr_size])
+			ptr_size++;
+
+		// Write str to a node
+		unsigned char *dest =
+			(unsigned char *)node_point(ref, str, ptr_size+1);
+
+		// Null terminate
+		dest[ptr_size] = '\0';
+		return (void *)dest;
+	}
+
+	#ifdef CREATE_EXAMPLE_NODE
+		// A default node
+		static struct node *__node = NULL;
+		#define nalloc(size) node_malloc(&__node, size)
+		#define nfree(ptr) node_free(__node, ptr)
+		#define ndel() node_destroy(&__node)
+		#define ncpy(ptr) node_point(&__node, ptr)
+		#define nstr(str) node_string(&__node, str);
+		#define nrealloc(ptr, nsize) node_realloc(&__node, ptr, nsize);
+	#endif // CREATE_EXAMPLE_NODE
 
 #ifdef __cplusplus
 }

@@ -18,7 +18,92 @@ extern "C" {
 		struct node *next;
 	} Arena;
 
-	// Allocate new memory
+	// DOCUMENTATION:
+
+	/**
+	 * node_malloc allocates a certain amount of memory.
+	 * The same as malloc()
+	 **/
+	static void * node_malloc (struct node **ref, int size);
+
+	/*
+	 * node_free will free a value from a given node. This function will
+	 * search for the given value within the linked list until it finds
+	 * it. when it finds it it will free it. this could be optimised by
+	 * just freeing the memory using free() and then calling node_destroy
+	 * to remove any excess data.
+	 **/
+	static int node_free(struct node *ref, void *ptr);
+
+	/**
+	 * node_destroy will recursivly remove ALL allocated memory in a linked
+	 * list.
+	 **/
+	static int node_destroy (struct node **ref);
+
+	/**
+	 * node_point allows you to allocate memory in a certain size, then also
+	 * memcopy a given void* value to the new node before returning the mem.
+	 **/
+	static void * node_point(struct node **ref, void *point, int ptr_size);
+
+	/**
+	 * node_point allows you to allocate memory in a certain size, then also
+	 * memcopy a given void* value to the new node before returning the mem.
+	 **/
+	static void * node_point(struct node **ref, void *point, int ptr_size);
+
+	/**
+	 * node_realloc takes in a node and a new size and will create a new
+	 * node with the new size and the old nodes value and return it.
+	 * this function is similar to realloc.
+	 **/
+	static void * node_realloc(struct node **ref, void* old_node, int new_size);
+	
+	/**
+	 * node_string returns allocated memory for the given string (str).
+	 * this is the same as strdup.
+	 **/
+	static void * node_string(struct node **ref, char *str);
+
+	/**
+	 * node_h_memcpy is the same as memcpy, it takes in two variables
+	 * a destination and a source and it will move over as much of the
+	 * source that will fit into the destination.
+	 **/
+	static void * node_h_memcpy(void * dest, const void *sorc, int sorc_len);
+
+	/**
+	 * node_h_strlen is a copy of strlen.
+	 **/
+	static int node_h_strlen(const char *str);
+	// DEFINITION:
+	
+	static int
+	node_h_strlen(const char *str)
+	{
+		int str_s = 0;
+		while (str[str_s])
+		   str_s++;
+		return str_s;
+	}
+	
+	static void *
+	node_h_memcpy(void * dest, const void *sorc, int sorc_len)
+	{
+		if (dest == NULL || sorc == NULL)
+			return NULL;
+
+		unsigned char *u_dest = (unsigned char *)dest;
+		unsigned char *u_sorc = (unsigned char *)sorc;
+		
+		// Copy the bytes over
+		while (sorc_len--)
+			*u_dest++ = *u_sorc++;
+
+		return dest;
+	}
+
 	static void *
 	node_malloc (struct node **ref, int size)
 	{
@@ -55,7 +140,6 @@ extern "C" {
 		return node_malloc(ref, size);
 	}
 
-	// frees a given value
 	static int
 	node_free(struct node *ref, void *ptr)
 	{
@@ -81,8 +165,6 @@ extern "C" {
 		return 0;
 	}
 
-	// Frees ALL memory and destroys nodes, the
-	// node_free function just removes the pointer.
 	static int
 	node_destroy (struct node **ref)
 	{
@@ -130,7 +212,7 @@ extern "C" {
 
 		return new_node;
 	}
-	
+
 	static void *
 	node_string(struct node **ref, char *str)
 	{
@@ -148,16 +230,24 @@ extern "C" {
 		return (void *)dest;
 	}
 
-	#ifdef CREATE_EXAMPLE_NODE
+
+
+	#ifndef NO_DEFAULT_NODE
 		// A default node
-		static struct node *__node = NULL;
-		#define nalloc(size) node_malloc(&__node, size)
-		#define nfree(ptr) node_free(__node, ptr)
-		#define ndel() node_destroy(&__node)
-		#define ncpy(ptr) node_point(&__node, ptr)
-		#define nstr(str) node_string(&__node, str);
-		#define nrealloc(ptr, nsize) node_realloc(&__node, ptr, nsize);
+		static struct node *__default_node = NULL;
+
+		// Default node macros
+		#define nmalloc(size) node_malloc(&__default_node, size)
+		#define nfree(ptr) node_free(__default_node, ptr)
+		#define ndelete() node_destroy(&__default_node)
+		#define nmemcreate(ptr) node_point(&__default_node, ptr)
+		#define nstrdup(str) node_string(&__default_node, str)
+		#define nrealloc(ptr, nsize) node_realloc(&__default_node, ptr, nsize)
 	#endif // CREATE_EXAMPLE_NODE
+
+	// Extra feature macros
+	#define nstrcpy(dest, src) node_h_memcpy(dest, src, node_h_strcpy(src))
+	#define nmemcopy(dest, src, len) node_h_memcpy(dest, src, len)
 
 #ifdef __cplusplus
 }

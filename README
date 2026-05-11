@@ -1,73 +1,105 @@
-node.h (Basic linked-list memory handler)
+node2.h (Basic linked-list memory handler)
 
------------------------------------------------------------------------------
-This is a small C library that provides a new way to allocate memory, you can
-use this library to allocate memory but you are now able to free all of that
-memory at once. This is similar to a arena allocator in concept.
+---------------------------------------------------------------------
+This is a small C library that provides a new way to allocate memory,
+you can use this library to allocate memory but you are now able to
+free all of that memory at once. This is similar to a arena allocator
+in concept.
 
-`node.h` uses a linked list where each node has a `void *` pointer. Each node of
-course has a child node and that node has a child node and so on.. When you
-use `node_alloc()`, the size of memory given will be `malloc()`'d to the nearest
-available node, a pointer to this memory is returned. This means you can use
-`node_malloc()` just like regular `malloc()`.
+This library uses a linked list where we start with one node and
+additional nodes can be added onto as a child element to other nodes.
+Each node in this case, has a size and a `void*` pointer. This
+pointer can be allocated too. Whenever an allocation happens we
+search through a given node and its children, until we find an empty
+node or until we reach the end of the linked list. We then allocate
+memory to the pointer at this node index and then you can copy data
+to that pointer.
 
-`node.h` is special, because it uses a linked list you have the ability to free
-ALL of the allocated memory in a given node list. This can be done through 
-`node_destroy`.
-------------------------------------------------------------------------------
+When you're finished with the data you can free it just as if you
+where using `free()` and `malloc()`. The largest upside of using a
+linked-list for memory management is that you know where all of the
+memory is. Instead in regular `malloc()`/`free()` the memory held at
+a singular addresses that can only be referenced by the variable that
+it was assigned too. Whereas in a linked list we always know where
+the memory is, and we just hold a reference to the stack address in
+any assigned variables. To conclude, this means that we can very
+easily loop over all the items and the linked list and free them,
+without needing to know the variables referencing each bit of data.
+
+This can reduce accidental memory leaks as its now possible to
+categorise and store memory in a persistent structure.
+
+When writing this library I kept in mind the LOC, as for very
+low-level utility libraries like this, you don't really want it
+taking up much storage. This library provides the following memory
+functions:
+
+node_malloc   | Allocates memory (same as malloc)
+node_free     | Frees memory (same as free)
+node_realloc  | Reallocates memory (same as realloc)
+node_destroy  | Removes all memory from a linked-list.
+node_dup      | Similar to strdup but for all memory
+node_string   | Allocates a string with null-terminator (Same as strdup)
+node_h_memcpy | Copies memory from a to b (same as memcpy)
+
+Check out the example below for a basic implementation, read node.h
+for more information on the prior functions
+
+---------------------------------------------------------------------
 example.c
-------------------------------------------------------------------------------
+---------------------------------------------------------------------
 #include <stdio.h> // for printf
 #include <malloc.h> // for malloc_usable_size
-#include "node.h"
+#include "node2.h"
 
 int main()
 {
-	// Allocate data to a node
-	char *msg = nmalloc(20);
-	node_h_memcpy (msg, "Hello World!", 20);
-	printf ("%s\n", msg);
+	// Define a starting node
+	linked_list *table = NULL;
 
-	// Free that particular node
-	// nfree (msg);
+	char *msg = node_malloc(&table, 20);
+	node_h_memcpy(msg, "test123", 7);
+	msg[7] = '\0';
 
-	// Allocate another string node
-	char *msg2 = nstrdup("Foobar!");
+	printf("%s\n", msg);
+
+	// alternatively you can strdup
+	char *msg2 = nstrdup(&table, "Hello World!");
 	printf ("%s\n", msg2);
-	
-	// Allocate another string node
-	char *msg3 = nstrdup("test-123");
-	printf ("%s\n", msg3);
 
-	// Create more room in a node
-	printf("size before realloc: %zu\n", malloc_usable_size(msg));
-	msg = nrealloc(msg, 30);
-	printf("size after realloc : %zu\n", malloc_usable_size(msg));
+	// only free the second message
+	// (would lead to a memory leak 2 alloc 1 free)
+	node_free(table, msg2);
 
-	// Delete ALL nodes
-	ndelete ();
+	// realloc time
+	printf("Size before realloc: %zu\n", malloc_usable_size(msg));
+	msg = node_realloc(&table, msg, 30);
+	printf("Size after realloc : %zu\n", malloc_usable_size(msg));
+
+	// at this point, if we exit it would be 3 allocs 1 free.
+	node_destroy(table);
+
+	// entire table has been freed now
 	return 0;
 }
------------------------------------------------------------------------------
-Valgrind output:
------------------------------------------------------------------------------
-==45357== Memcheck, a memory error detector
-==45357== Copyright (C) 2002-2024, and GNU GPL'd, by Julian Seward et al.
-==45357== Using Valgrind-3.25.1 and LibVEX; rerun with -h for copyright info
-==45357== Command: ./a.out
-==45357==
-Hello World!
-Foobar!
-test-123
-size before realloc: 20
-size after realloc : 30
-==45357==
-==45357== HEAP SUMMARY:
-==45357==     in use at exit: 0 bytes in 0 blocks
-==45357==   total heap usage: 9 allocs, 9 frees, 1,155 bytes allocated
-==45357==
-==45357== All heap blocks were freed -- no leaks are possible
-==45357==
-==45357== For lists of detected and suppressed errors, rerun with: -s
-==45357== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
+---------------------------------------------------------------------
+Valgrind output for example.c:
+---------------------------------------------------------------------
+Memcheck, a memory error detector
+Copyright (C) 2002-2024, and GNU GPL'd, by Julian Seward et al.
+Using Valgrind-3.25.1 and LibVEX; rerun with -h for copyright info
+Command: ./a.out
 
+test123
+Hello World!
+Size before realloc: 20
+Size after realloc : 30
+
+HEAP SUMMARY:
+    in use at exit: 0 bytes in 0 blocks
+  total heap usage: 6 allocs, 6 frees, 1,135 bytes allocated
+
+All heap blocks were freed -- no leaks are possible
+
+For lists of detected and suppressed errors, rerun with: -s
+ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)

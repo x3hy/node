@@ -1,31 +1,34 @@
 #include <stdio.h> // for printf
 #include <malloc.h> // for malloc_usable_size
-#include "node.h"
+#include "node2.h"
 
 int main()
 {
-	// Allocate data to a node
-	char *msg = nmalloc(20);
-	node_h_memcpy (msg, "Hello World!", 20);
-	printf ("%s\n", msg);
+	// Define a starting node
+	linked_list *table = NULL;
 
-	// Free that particular node
-	// nfree (msg);
+	char *msg = node_malloc(&table, 20);
+	node_h_memcpy(msg, "test123", 7);
+	msg[7] = '\0';
 
-	// Allocate another string node
-	char *msg2 = nstrdup("Foobar!");
+	printf("%s\n", msg);
+
+	// alternatively you can strdup
+	char *msg2 = nstrdup(&table, "Hello World!");
 	printf ("%s\n", msg2);
-	
-	// Allocate another string node
-	char *msg3 = nstrdup("test-123");
-	printf ("%s\n", msg3);
 
-	// Create more room in a node
-	printf("size before realloc: %zu\n", malloc_usable_size(msg));
-	msg = nrealloc(msg, 30);
-	printf("size after realloc : %zu\n", malloc_usable_size(msg));
+	// only free the second message
+	// (would lead to a memory leak 2 alloc 1 free)
+	node_free(table, msg2);
 
-	// Delete ALL nodes
-	ndelete ();
+	// realloc time
+	printf("Size before realloc: %zu\n", malloc_usable_size(msg));
+	msg = node_realloc(&table, msg, 30);
+	printf("Size after realloc : %zu\n", malloc_usable_size(msg));
+
+	// at this point, if we exit it would be 3 allocs 1 free.
+	node_destroy(table);
+
+	// entire table has been freed now
 	return 0;
 }

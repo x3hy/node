@@ -8,7 +8,6 @@ typedef struct linked_list {
 	void *pointer;     // pointer memory
 } linked_list;
 
-
 #include <stdlib.h> // for malloc and free
 #ifndef NULL
 #define NULL (void *)0
@@ -223,6 +222,21 @@ node_realloc(linked_list **ref, void *pointer, int new_size)
 	cur->pointer = new_data;
 	cur->size = new_size;
 	return new_data;
+}
+
+/**
+ * Returns the total allocated memory
+ **/
+static int
+total_mem_used(linked_list **ref){
+	linked_list *cur = *ref;
+	unsigned int total = 0;
+	while (cur->link != NULL) {
+		total += cur->size;
+		cur = cur->link;
+	}
+
+	return total;
 }
 
 #endif // NODE_H

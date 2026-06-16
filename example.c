@@ -26,6 +26,8 @@ int main()
 	msg = node_realloc(&table, msg, 30);
 	printf("Size after realloc : %zu\n", malloc_usable_size(msg));
 
+	printf("total size used: %d", total_mem_used(&table));
+
 	// at this point, if we exit it would be 3 allocs 1 free.
 	node_destroy(table);
 
